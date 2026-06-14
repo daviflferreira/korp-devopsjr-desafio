@@ -2,7 +2,7 @@
 
 Desafio técnico para a vaga de Analista de DevOps Júnior / Estágio em DevOps da Korp ERP.
 
-Servidor HTTP em GO com proxy reverso nginx, monitoramento via Prometheus junto com o Grafana e provisionamento automatizado com Ansible.
+É um Servidor HTTP em GO com proxy reverso nginx, monitoramento via Prometheus junto com o Grafana e provisionamento automatizado com Ansible.
 
 ---
 
@@ -12,13 +12,17 @@ Servidor HTTP em GO com proxy reverso nginx, monitoramento via Prometheus junto 
 
 ---
 
-## Estrutura do projeto
+## Estrutura
 
 ```
 korp-devopsjr-desafio/
 ├── app/                  # servidor Go + Dockerfile
 ├── nginx/                # configuração do proxy reverso
 ├── prometheus/           # configuração de scraping
+├── grafana/              # provisionamento automático do Grafana
+│   ├── datasources.yml                          # conecta ao Prometheus automaticamente
+│   ├── dashboards.yml                           # aponta pra pasta de dashboards
+│   └── http-server-projeto-korp-dashboard.json  # dashboard exportado
 ├── compose.yaml          # orquestração dos containers
 └── playbook.yml          # automação com Ansible
 ```
@@ -53,6 +57,17 @@ Grafana: user: `admin` / senha: `admin123`
 
 ---
 
+## Monitoramento
+
+O Grafana sobe com o dashboard http-server-projeto-korp já configurado automaticamente via arquivos de provisionamento. Nenhuma configuração manual é necessária.
+
 ## Métricas
 
 O dashboard http-server-projeto-korp no Grafana exibe disponibilidade do serviço e volume de requisições
+
+### Métricas disponíveis:
+
+| Métrica | Tipo | Descrição |
+|---|---|---|
+| `http_requisicoes_total` | Counter | Total de requisições no /projeto-korp |
+| `servico_disponivel` | Gauge | 1 = no ar, 0 = fora do ar |
