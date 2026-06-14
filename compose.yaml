@@ -46,6 +46,13 @@ services:
       - "3000:3000" #onde fica a interface
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      #datasource
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      #onde ficam os dashboards
+      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      #dashboard
+      - ./grafana/http-server-projeto-korp-dashboard.json:/var/lib/grafana/dashboards/http-server-projeto-korp-dashboard.json
     networks:
       - korp-network
     restart: always
