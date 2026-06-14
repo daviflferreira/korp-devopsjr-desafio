@@ -1,0 +1,58 @@
+services:
+
+  #app go
+  http-server-projeto-korp:
+    image: http-server-projeto-korp
+    container_name: http-server-projeto-korp
+    networks:
+      - korp-network
+    restart: always
+
+  #nginx
+  nginx:
+    image: nginx:latest
+    container_name: nginx-korp
+    ports:
+      - "80:80"
+    volumes:
+      #monta a config dentro do nginx
+      - ./nginx:/etc/nginx/conf.d
+    networks:
+    - korp-network
+    restart: always
+    depends_on:
+      - http-server-projeto-korp
+
+  #prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-korp
+    ports:
+      - "9090:9090" #interface prometheus
+    volumes:
+      #config de scraping
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - korp-network
+    restart: always
+    depends_on:
+      - http-server-projeto-korp
+
+  #grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-korp
+    ports:
+      - "3000:3000" #onde fica a interface
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    networks:
+      - korp-network
+    restart: always
+    depends_on:
+      - prometheus
+
+#rede interna
+networks:
+  korp-network:
+    driver: bridge

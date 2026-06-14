@@ -1,0 +1,96 @@
+---
+- name: Provisionar ambiente http-server-projeto-korp
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    #instala as dependencias do docker
+    - name: Instalar pacotes necessários
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: true
+
+    #adiciona a chave gpg do docker
+    - name: Criar diretório para chaves GPG
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Baixar a chave GPG do docker
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      args:
+        creates:  /etc/apt/keyrings/docker.gpg
+
+    #adiciona rep do docker
+    - name: Adicionar repositório do docker
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    #instala o docker
+    - name: Instalar docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    #garante que o docker ta rodando de boa
+    - name: Iniciar e habilitar o serviço docker
+      shell: |
+        service docker start || true
+
+    #cria a rede docker
+    - name: Criar rede docker korp-network
+      community.docker.docker_network:
+        name: korp-network
+        driver: bridge
+        state: present
+      
+    #build da imagem do app go
+    - name: Build da imagem http-server-projeto-korp
+      community.docker.docker_image:
+        name: http-server-projeto-korp
+        tag: latest
+        build:
+          path: "{{ playbook_dir }}/app"
+        source: build
+        force_source: true
+      
+    #subir todos os containers com o compose
+    - name: Subir ambiente com docker compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ playbook_dir }}"
+        state: present
+
+    #validar se o serviço está respondendo
+    - name: Aguardar serviço ficar disponível
+      wait_for:
+        host: localhost
+        port: 80
+        delay: 5
+        timeout: 60
+
+    - name: Fazer requisição de validação
+      uri:
+        url: http://localhost:80/projeto-korp
+        method: GET
+        status_code: 200
+      register: resposta
+
+    - name: Exibir resposta do serviço
+      debug:
+        msg: "Serviço respondeu: {{ resposta.json }}"
+
